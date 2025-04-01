@@ -31,15 +31,16 @@ async def download_single_song(request: SongRequest):
     list_of_files = glob.glob(f"{DOWNLOAD_DIR}/*.mp3")
 
     if not list_of_files:
-        return {
-            "error": "Failed to download song. YouTube may have blocked access. Try again later."
-        }
+        return {"error": "Download failed or was blocked by YouTube."}
 
     latest_file = max(list_of_files, key=os.path.getctime)
+    filename = os.path.basename(latest_file)
+
     return FileResponse(
         latest_file,
         media_type='audio/mpeg',
-        filename=os.path.basename(latest_file)
+        filename=filename,  
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
     )
 
 @app.post("/upload/")
