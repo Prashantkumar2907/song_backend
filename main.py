@@ -29,8 +29,18 @@ def home():
 async def download_single_song(request: SongRequest):
     msg = download_song(request.song_name)
     list_of_files = glob.glob(f"{DOWNLOAD_DIR}/*.mp3")
+
+    if not list_of_files:
+        return {
+            "error": "Failed to download song. YouTube may have blocked access. Try again later."
+        }
+
     latest_file = max(list_of_files, key=os.path.getctime)
-    return FileResponse(latest_file, media_type='audio/mpeg', filename=os.path.basename(latest_file))
+    return FileResponse(
+        latest_file,
+        media_type='audio/mpeg',
+        filename=os.path.basename(latest_file)
+    )
 
 @app.post("/upload/")
 async def upload_excel(file: UploadFile = File(...)):
