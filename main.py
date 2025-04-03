@@ -5,6 +5,8 @@ from pydantic import BaseModel
 from utils.downloader import download_song, process_excel_and_download, zip_downloads
 import os
 import glob
+import unicodedata
+import re
 
 app = FastAPI()
 
@@ -34,13 +36,14 @@ async def download_single_song(request: SongRequest):
         return {"error": "Download failed or was blocked by YouTube."}
 
     latest_file = max(list_of_files, key=os.path.getctime)
-    filename = os.path.basename(latest_file)
+    raw_filename = os.path.basename(latest_file)
+    safe_filename = sanitize_filename(raw_filename)
 
     return FileResponse(
         latest_file,
         media_type='audio/mpeg',
-        filename=filename,  
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+        filename=safe_filename,  
+        headers={"Content-Disposition": f'attachment; filename="{safe_filename}"'}
     )
 
 @app.post("/upload/")
@@ -54,3 +57,11 @@ async def upload_excel(file: UploadFile = File(...)):
 
     zip_path = zip_downloads()
     return FileResponse(zip_path, media_type='application/zip', filename="songs.zip")
+
+
+def sanitize_filename(name):
+    # Normalize and remove unsafe characters
+    name = unicodedata.normalize("NFKD", name)
+    name = re.sub(r'[^\w\s.-]', '', name)  # keep alphanumerics, dots, hyphens
+    name = name.strip().replace(" ", "_")
+    return name
